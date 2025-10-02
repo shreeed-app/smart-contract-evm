@@ -1,0 +1,12 @@
+{
+    "cSpell.words": [
+      "ierc",
+      "keccak",
+      "reentrancy",
+      "viem"
+    ],
+    "[solidity]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "editor.formatOnSave": true
+}
