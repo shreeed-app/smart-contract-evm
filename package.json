@@ -5,12 +5,18 @@
   "devDependencies": {
     "@nomicfoundation/hardhat-ignition": "^3.0.3",
     "@nomicfoundation/hardhat-toolbox-viem": "^5.0.0",
+    "@nomicfoundation/hardhat-viem": "^3.0.0",
     "@nomicfoundation/ignition-core": "^3.0.3",
+    "@types/chai": "^5.2.2",
     "@types/node": "^22.18.8",
+    "@wagmi/core": "^2.21.2",
+    "chai": "^6.2.0",
+    "ethers": "^6.15.0",
     "forge-std": "github:foundry-rs/forge-std#v1.9.4",
     "hardhat": "^3.0.6",
     "prettier": "^3.6.2",
     "prettier-plugin-solidity": "^2.1.0",
+    "ts-node": "^10.9.2",
     "typescript": "~5.8.3",
     "viem": "^2.37.11"
   },

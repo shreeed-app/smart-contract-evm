@@ -41,6 +41,14 @@ pnpm install
 npm install
 ```
 
+## Start local blockchain
+
+```sh
+pnpm hardhat node
+# or 
+npx hardhat node
+```
+
 ## Build Contracts
 
 ```sh
@@ -54,7 +62,7 @@ npx hardhat compile
 You can deploy the contract using HardHat Ignition:
 
 ```sh
-pnpm hardhat ignition deploy ignition/modules/PaymentGateway.ts
+pnpm hardhat ignition deploy ignition/modules/PaymentGateway.ts --network localhost
 ```
 
 - Edit [`ignition/modules/PaymentGateway.ts`](ignition/modules/PaymentGateway.ts) to set the initial signer and owner addresses.
