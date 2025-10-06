@@ -19,6 +19,7 @@ contract PaymentGateway is Ownable, ReentrancyGuard, Pausable, EIP712 {
 
     mapping(uint256 => bool) public usedNonces;
 
+    // Invoice struct as signed by backend (no payer).
     struct Invoice {
         address merchant;
         address token;
@@ -30,6 +31,8 @@ contract PaymentGateway is Ownable, ReentrancyGuard, Pausable, EIP712 {
         bytes32 metadataHash;
     }
 
+    // Emitted after successful payment.
+    // Includes payer for reference.
     struct _PaidInvoice {
         address payer;
         address merchant;
@@ -41,6 +44,7 @@ contract PaymentGateway is Ownable, ReentrancyGuard, Pausable, EIP712 {
         uint256 nonce;
     }
 
+    // Invoice struct as signed by backend (no payer).
     bytes32 public constant INVOICE_TYPE_HASH =
         keccak256(
             abi.encodePacked(
@@ -57,6 +61,7 @@ contract PaymentGateway is Ownable, ReentrancyGuard, Pausable, EIP712 {
             )
         );
 
+    // Payer bind struct: binds an invoice to a specific payer address.
     bytes32 public constant PAYER_BIND_TYPE_HASH =
         keccak256(
             abi.encodePacked(
@@ -69,6 +74,11 @@ contract PaymentGateway is Ownable, ReentrancyGuard, Pausable, EIP712 {
 
     event PaidInvoice(_PaidInvoice invoice);
 
+    /**
+     * @dev Constructor.
+     * @param _invoiceSigner The address authorized to sign invoices.
+     * @param _owner The owner of the contract (can change settings).
+     */
     constructor(
         address _invoiceSigner,
         address _owner
@@ -77,17 +87,28 @@ contract PaymentGateway is Ownable, ReentrancyGuard, Pausable, EIP712 {
         invoiceSigner = _invoiceSigner;
     }
 
+    /**
+     * @dev Set the maximum fee basis points (max 10000 = 100%).
+     * @param feeBasisPoints The new maximum fee basis points.
+     */
     function setMaxFeeBasisPoints(uint16 feeBasisPoints) external onlyOwner {
         require(feeBasisPoints <= 10_000, "max > 100%");
         maxFeeBasisPoints = feeBasisPoints;
     }
+
+    /**
+     * @dev Set the invoice signer address.
+     * @param _invoiceSigner The new invoice signer address.
+     */
     function setInvoiceSigner(address _invoiceSigner) external onlyOwner {
         require(_invoiceSigner != address(0), "invoiceSigner = 0");
         invoiceSigner = _invoiceSigner;
     }
+
     function pause() external onlyOwner {
         _pause();
     }
+
     function unpause() external onlyOwner {
         _unpause();
     }
@@ -174,6 +195,11 @@ contract PaymentGateway is Ownable, ReentrancyGuard, Pausable, EIP712 {
         );
     }
 
+    /**
+     * @dev Compute the struct hash for an Invoice.
+     * @param invoice The invoice struct to hash.
+     * @return The computed struct hash as a bytes32 value.
+     */
     function _invoiceStructHash(
         Invoice calldata invoice
     ) internal pure returns (bytes32) {
@@ -193,6 +219,11 @@ contract PaymentGateway is Ownable, ReentrancyGuard, Pausable, EIP712 {
             );
     }
 
+    /**
+     * @dev Internal function to send ETH and handle failures.
+     * @param to Recipient address.
+     * @param amount Amount of ETH to send.
+     */
     function _sendETH(address to, uint256 amount) internal {
         (bool ok, ) = to.call{ value: amount }("");
         require(ok, "ETH transfer failed");

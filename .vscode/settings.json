@@ -8,7 +8,14 @@
     "source.organizeImports": "always"
   },
   "typescript.tsdk": "node_modules/typescript/lib",
-  "cSpell.words": ["ierc", "keccak", "reentrancy", "viem"],
+  "cSpell.words": [
+    "chainid",
+    "ierc",
+    "keccak",
+    "reentrancy",
+    "TYPEHASH",
+    "viem"
+  ],
   "[solidity]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   }

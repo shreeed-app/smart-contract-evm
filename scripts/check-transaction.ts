@@ -13,7 +13,7 @@ const TRANSACTION_HASH: Address = "0x";
 const MERCHANT_ADDRESS: Address = "0x";
 const FEE_RECIPIENT_ADDRESS: Address = "0x";
 
-async function main(): Promise<void> {
+const main = async (): Promise<void> => {
   const client: PublicClient = createPublicClient({
     chain: hardhat,
     transport: http("http://127.0.0.1:8545"),
@@ -41,7 +41,7 @@ async function main(): Promise<void> {
   console.log(`Sender (${sender}): (${formatEther(balanceSender)} ETH)`);
   console.log(`Merchant: (${formatEther(balanceMerchant)} ETH)`);
   console.log(`Fee recipient: (${formatEther(balanceFeeRecipient)} ETH)`);
-}
+};
 
 main().catch((error: unknown) => {
   console.error(error);
