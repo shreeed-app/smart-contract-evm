@@ -1,8 +1,9 @@
 {
-  "name": "crypto-smart-contract",
+  "name": "smart-contract-evm",
   "version": "1.0.0",
   "type": "module",
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.1",
     "@nomicfoundation/hardhat-ignition": "^3.0.3",
     "@nomicfoundation/hardhat-toolbox-viem": "^5.0.0",
     "@nomicfoundation/hardhat-viem": "^3.0.0",

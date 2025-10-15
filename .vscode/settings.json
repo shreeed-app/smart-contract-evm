@@ -13,8 +13,9 @@
     "ierc",
     "keccak",
     "reentrancy",
-    "TYPEHASH",
-    "viem"
+    "typehash",
+    "viem",
+    "wagmi"
   ],
   "[solidity]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
