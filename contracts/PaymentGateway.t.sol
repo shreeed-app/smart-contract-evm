@@ -93,8 +93,8 @@ contract PaymentGatewayTest is Test {
         invoice.metadataHash = keccak256(bytes("demo"));
 
         // Sign the invoice.
-        bytes32 invoiceStructHash = _invoiceStructHash(invoice);
-        bytes32 domainSeparator = _domainSeparator(address(gateway));
+        bytes32 invoiceStructHash = gateway.invoiceStructHash(invoice);
+        bytes32 domainSeparator = gateway.domainSeparator();
         bytes32 invoiceDigest = keccak256(
             // \x19\x01 is the standard encoding prefix.
             abi.encodePacked("\x19\x01", domainSeparator, invoiceStructHash)
@@ -205,8 +205,8 @@ contract PaymentGatewayTest is Test {
         invoice.metadataHash = keccak256(bytes("demo-2"));
 
         // Sign the invoice.
-        bytes32 domainSeparator = _domainSeparator(address(gateway));
-        bytes32 invoiceStructHash = _invoiceStructHash(invoice);
+        bytes32 domainSeparator = gateway.domainSeparator();
+        bytes32 invoiceStructHash = gateway.invoiceStructHash(invoice);
         bytes32 invoiceDigest = keccak256(
             abi.encodePacked("\x19\x01", domainSeparator, invoiceStructHash)
         );
@@ -242,50 +242,5 @@ contract PaymentGatewayTest is Test {
             payer,
             payerSignature
         );
-    }
-
-    /**
-     * @dev Compute the EIP-712 domain separator for the contract.
-     * @param verifyingContract The contract address verifying the signature.
-     * @return The computed domain separator as a bytes32 value.
-     */
-    function _domainSeparator(
-        address verifyingContract
-    ) internal view returns (bytes32) {
-        return
-            keccak256(
-                abi.encode(
-                    EIP712_DOMAIN_TYPEHASH,
-                    NAME_HASH,
-                    VERSION_HASH,
-                    block.chainid,
-                    verifyingContract
-                )
-            );
-    }
-
-    /**
-     * @dev Compute the struct hash for a PaymentGateway.Invoice.
-     * @param invoice The invoice struct to hash.
-     * @return The computed struct hash as a bytes32 value.
-     */
-    function _invoiceStructHash(
-        PaymentGateway.Invoice memory invoice
-    ) internal view returns (bytes32) {
-        bytes32 typeHash = gateway.INVOICE_TYPE_HASH();
-        return
-            keccak256(
-                abi.encode(
-                    typeHash,
-                    invoice.merchant,
-                    invoice.token,
-                    invoice.amount,
-                    invoice.feeBasisPoints,
-                    invoice.feeRecipient,
-                    invoice.expiry,
-                    invoice.nonce,
-                    invoice.metadataHash
-                )
-            );
     }
 }

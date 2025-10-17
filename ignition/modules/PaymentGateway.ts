@@ -7,8 +7,8 @@ import {
 import { type Address } from "viem";
 
 const CONTRACT_NAME: string = "PaymentGateway";
-const SIGNER_ADDRESS: Address = "0x90f79bf6eb2c4f870365e785982e1f101e93b906";
-const OWNER_ADDRESS: Address = "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc";
+const SIGNER_ADDRESS: Address = "0xfabb0ac9d68b0b445fb7357272ff202c5651694a";
+const OWNER_ADDRESS: Address = "0x1cbd3b2770909d4e10f157cabc84c7264073c9ec";
 
 const PaymentGateway: IgnitionModule = buildModule(
   CONTRACT_NAME,

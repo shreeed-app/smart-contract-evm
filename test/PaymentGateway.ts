@@ -11,8 +11,8 @@ import { network } from "hardhat";
 import { type NetworkConnection } from "hardhat/types/network";
 import {
   type Address,
-  encodeAbiParameters,
   getAddress,
+  hashTypedData,
   keccak256,
   parseEther,
   stringToBytes,
@@ -21,13 +21,13 @@ import {
   zeroAddress,
 } from "viem";
 
-const ContractName = "PaymentGateway" as const;
-const ContractVersion = "1" as const;
-const ChainType = "hardhat" as const;
+const ContractName = "PaymentGateway" as const satisfies string;
+const ContractVersion = "1" as const satisfies string;
+const ChainType = "hardhat" as const satisfies string;
 
 const AMOUNT: bigint = parseEther("1");
 const FEES: number = 1_000; // 10%.
-const ORDER_ID = "demo" as const;
+const ORDER_ID = "demo" as const satisfies string;
 
 interface Invoice {
   merchant: Address;
@@ -61,6 +61,13 @@ type KeyForValue<T, V> = {
   [K in keyof T]: [T[K]] extends [V] ? ([V] extends [T[K]] ? K : never) : never;
 }[keyof T];
 
+/**
+ * Get the key of an object by its value.
+ *
+ * @param {T} object - The object to search.
+ * @param {V} value - The value to search for.
+ * @returns {KeyForValue<T, V>} - The key corresponding to the value.
+ */
 const getKeyByValue = <
   T extends Record<string, unknown>,
   const V extends T[keyof T],
@@ -73,22 +80,23 @@ const getKeyByValue = <
   )! as KeyForValue<T, V>;
 };
 
-/**
- * Test scenario:
- * - The payer and has to pay 1.0 ETH to the merchant.
- * - The merchant is receiving 0.9 ETH.
- * - The backend signer is signing invoices off-chain.
- * - The fee recipient is receiving 0.1 ETH (10% fee).
- * - The PaymentGateway contract does not retain any ETH after the transaction.
- */
-describe(ContractName, async () => {
+describe(ContractName, async (): Promise<void> => {
   const connection: NetworkConnection<typeof ChainType> =
     await network.connect();
   const viem: HardhatViemHelpers<typeof ChainType> = connection.viem;
   const publicClient: GetPublicClientReturnType<typeof ChainType> =
     await viem.getPublicClient();
 
-  it("Success scenario", async () => {
+  /**
+   * Test scenario:
+   * - The payer and has to pay 1.0 ETH to the merchant.
+   * - The merchant is receiving 0.9 ETH.
+   * - The backend signer is signing invoices off-chain.
+   * - The fee recipient is receiving 0.1 ETH (10% fee).
+   * - The PaymentGateway contract does not retain any ETH after the
+   *   transaction.
+   */
+  it("Success scenario.", async (): Promise<void> => {
     const [owner, payer, merchant, signer, recipient]: Array<
       GetWalletClientReturnType<typeof ChainType>
     > = await viem.getWalletClients();
@@ -138,44 +146,24 @@ describe(ContractName, async () => {
       message: invoice,
     });
 
-    // Compute invoice struct hash to use inside PayerBind.
-    // fetch the contract's INVOICE_TYPE_HASH to avoid any mismatch.
-    const invoiceTypeHash: Address = await gateway.read.INVOICE_TYPE_HASH();
+    // Verify invoice digest consistency between on-chain and off-chain.
+    const onChainDigest: Address = await gateway.read.invoiceDigest([invoice]);
+    const offChainDigest: Address = hashTypedData({
+      domain: domain,
+      types: { Invoice: Types.Invoice },
+      primaryType: getKeyByValue(Types, Types.Invoice),
+      message: invoice,
+    });
+    assert.equal(offChainDigest, onChainDigest, "Invoice digest mismatch.");
 
-    const encoded: Address = encodeAbiParameters(
-      [
-        { type: "bytes32" }, // Type hash.
-        { type: "address" }, // Merchant.
-        { type: "address" }, // Token.
-        { type: "uint256" }, // Amount.
-        { type: "uint16" }, // Fee basis points.
-        { type: "address" }, // Fee recipient.
-        { type: "uint256" }, // Expiry.
-        { type: "uint256" }, // Nonce.
-        { type: "bytes32" }, // Metadata hash.
-      ],
-      [
-        invoiceTypeHash,
-        getAddress(invoice.merchant),
-        getAddress(invoice.token),
-        invoice.amount,
-        invoice.feeBasisPoints,
-        getAddress(invoice.feeRecipient),
-        invoice.expiry,
-        invoice.nonce,
-        invoice.metadataHash,
-      ],
-    );
-
+    // Payer signs the binding to the invoice.
+    const hash: Address = await gateway.read.invoiceStructHash([invoice]);
     const payerSignature: Address = await payer.signTypedData({
       account: payer.account,
       domain: domain,
       types: { PayerBind: Types.PayerBind },
       primaryType: getKeyByValue(Types, Types.PayerBind),
-      message: {
-        invoiceHash: keccak256(encoded),
-        payer: payerAddress,
-      },
+      message: { invoiceHash: hash, payer: payerAddress },
     });
 
     const merchantBalanceBefore: bigint = await publicClient.getBalance({
@@ -238,5 +226,178 @@ describe(ContractName, async () => {
     );
 
     assert.equal(await gateway.read.usedNonces([invoice.nonce]), true);
+  });
+
+  it("Invalid payer.", async (): Promise<void> => {
+    const [owner, payer, merchant, signer, recipient]: Array<
+      GetWalletClientReturnType<typeof ChainType>
+    > = await viem.getWalletClients();
+
+    const ownerAddress: Address = getAddress(owner.account.address);
+    const signerAddress: Address = getAddress(signer.account.address);
+    const payerAddress: Address = getAddress(payer.account.address);
+    const merchantAddress: Address = getAddress(merchant.account.address);
+    const recipientAddress: Address = getAddress(recipient.account.address);
+
+    const chainId: number = await publicClient.getChainId();
+
+    // constructor(address _invoiceSigner, address _owner)
+    const gateway: ContractReturnType<typeof ContractName> =
+      await viem.deployContract(ContractName, [signerAddress, ownerAddress]);
+    const gatewayAddress: Address = getAddress(gateway.address);
+
+    const invoiceSigner: Address = await gateway.read.invoiceSigner();
+    assert.equal(getAddress(invoiceSigner), signerAddress);
+    assert.equal(await gateway.read.maxFeeBasisPoints(), FEES);
+
+    const invoice: Invoice = {
+      merchant: merchantAddress,
+      token: zeroAddress,
+      amount: AMOUNT,
+      feeBasisPoints: FEES,
+      feeRecipient: recipientAddress,
+      expiry: BigInt(Math.floor(Date.now() / 1000) + 3600),
+      nonce: BigInt.asUintN(64, BigInt(Date.now())),
+      metadataHash: keccak256(stringToBytes(ORDER_ID)),
+    };
+
+    const domain: TypedDataDomain = {
+      name: ContractName,
+      version: ContractVersion,
+      chainId,
+      verifyingContract: gatewayAddress,
+    };
+
+    // Backend signs invoice (correct signer)
+    const backendSignature: Address = await signer.signTypedData({
+      account: signer.account,
+      domain: domain,
+      types: { Invoice: Types.Invoice },
+      primaryType: getKeyByValue(Types, Types.Invoice),
+      message: invoice,
+    });
+
+    // Cross-check invoice digest off-chain vs on-chain.
+    const onChainDigest: Address = await gateway.read.invoiceDigest([invoice]);
+    const offChainDigest: Address = hashTypedData({
+      domain: domain,
+      types: { Invoice: Types.Invoice },
+      primaryType: getKeyByValue(Types, Types.Invoice),
+      message: invoice,
+    });
+    assert.equal(offChainDigest, onChainDigest, "Invoice digest mismatch.");
+
+    // Payer bind (signed by the *real* payer).
+    const invoiceHash: Address = await gateway.read.invoiceStructHash([
+      invoice,
+    ]);
+    const payerSignature: Address = await payer.signTypedData({
+      account: payer.account,
+      domain,
+      types: { PayerBind: Types.PayerBind },
+      primaryType: getKeyByValue(Types, Types.PayerBind),
+      message: { invoiceHash: invoiceHash, payer: payerAddress },
+    });
+
+    await assert.rejects(
+      (async (): Promise<Address> => {
+        return await gateway.write.payInvoice(
+          [invoice, backendSignature, payerAddress, payerSignature],
+          // Wrong sender is paying the invoice.
+          { value: AMOUNT, account: owner.account },
+        );
+      })(),
+      /unauthorized payer/i,
+    );
+
+    const used: boolean = await gateway.read.usedNonces([invoice.nonce]);
+    assert.equal(used, false, "Nonce consumed on unauthorized payer.");
+  });
+
+  it("Tampered invoice data.", async (): Promise<void> => {
+    const [owner, payer, merchant, signer, recipient]: Array<
+      GetWalletClientReturnType<typeof ChainType>
+    > = await viem.getWalletClients();
+
+    const ownerAddress: Address = getAddress(owner.account.address);
+    const signerAddress: Address = getAddress(signer.account.address);
+    const payerAddress: Address = getAddress(payer.account.address);
+    const merchantAddress: Address = getAddress(merchant.account.address);
+    const recipientAddress: Address = getAddress(recipient.account.address);
+
+    const chainId: number = await publicClient.getChainId();
+
+    const gateway: ContractReturnType<typeof ContractName> =
+      await viem.deployContract(ContractName, [signerAddress, ownerAddress]);
+    const gatewayAddress: Address = getAddress(gateway.address);
+
+    const invoiceSigner: Address = await gateway.read.invoiceSigner();
+    assert.equal(getAddress(invoiceSigner), signerAddress);
+    assert.equal(await gateway.read.maxFeeBasisPoints(), FEES);
+
+    const invoice: Invoice = {
+      merchant: merchantAddress,
+      token: zeroAddress,
+      amount: AMOUNT,
+      feeBasisPoints: FEES,
+      feeRecipient: recipientAddress,
+      expiry: BigInt(Math.floor(Date.now() / 1000) + 3600),
+      nonce: BigInt.asUintN(64, BigInt(Date.now())),
+      metadataHash: keccak256(stringToBytes(ORDER_ID)),
+    };
+
+    const domain: TypedDataDomain = {
+      name: ContractName,
+      version: ContractVersion,
+      chainId,
+      verifyingContract: gatewayAddress,
+    };
+
+    const backendSignature: Address = await signer.signTypedData({
+      account: signer.account,
+      domain,
+      types: { Invoice: Types.Invoice },
+      primaryType: getKeyByValue(Types, Types.Invoice),
+      message: invoice,
+    });
+
+    const onChainDigest: Address = await gateway.read.invoiceDigest([invoice]);
+    const offChainDigest: Address = hashTypedData({
+      domain,
+      types: { Invoice: Types.Invoice },
+      primaryType: getKeyByValue(Types, Types.Invoice),
+      message: invoice,
+    });
+    assert.equal(offChainDigest, onChainDigest, "Invoice digest mismatch.");
+
+    const invoiceTampered: Invoice = {
+      ...invoice,
+      amount: AMOUNT * 2n,
+    };
+
+    const tamperedStructHash: Address = await gateway.read.invoiceStructHash([
+      invoiceTampered,
+    ]);
+    const payerSignature: Address = await payer.signTypedData({
+      account: payer.account,
+      domain,
+      types: { PayerBind: Types.PayerBind },
+      primaryType: getKeyByValue(Types, Types.PayerBind),
+      message: { invoiceHash: tamperedStructHash, payer: payerAddress },
+    });
+
+    await assert.rejects(
+      (async (): Promise<Address> => {
+        return await gateway.write.payInvoice(
+          [invoiceTampered, backendSignature, payerAddress, payerSignature],
+          // Paying according to tampered invoice.
+          { value: invoiceTampered.amount, account: payer.account },
+        );
+      })(),
+      /incorrect backend signature/i,
+    );
+
+    const used: boolean = await gateway.read.usedNonces([invoice.nonce]);
+    assert.equal(used, false, "Nonce consumed with invalid signature.");
   });
 });

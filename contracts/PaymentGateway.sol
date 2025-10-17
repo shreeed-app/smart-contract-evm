@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.28;
+pragma solidity ^0.8.23;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
@@ -136,9 +136,9 @@ contract PaymentGateway is Ownable, ReentrancyGuard, Pausable, EIP712 {
         require(!usedNonces[invoice.nonce], "nonce already used");
 
         // Verify backend signature.
-        bytes32 invoiceHash = _invoiceStructHash(invoice);
-        bytes32 invoiceDigest = _hashTypedDataV4(invoiceHash);
-        address recovered = ECDSA.recover(invoiceDigest, backendSignature);
+        bytes32 invoiceHash = this.invoiceStructHash(invoice);
+        bytes32 digest = _hashTypedDataV4(invoiceHash);
+        address recovered = ECDSA.recover(digest, backendSignature);
         require(recovered == invoiceSigner, "incorrect backend signature");
 
         // Optional payer lock.
@@ -217,6 +217,52 @@ contract PaymentGateway is Ownable, ReentrancyGuard, Pausable, EIP712 {
                     invoice.metadataHash
                 )
             );
+    }
+
+    /**
+     * @dev External function to get the domain separator.
+     * @return The domain separator as a bytes32 value.
+     */
+    function domainSeparator() external view returns (bytes32) {
+        return _domainSeparatorV4();
+    }
+
+    /**
+     * @dev External function to compute the struct hash for an Invoice.
+     * @param invoice The invoice struct to hash.
+     * @return The computed struct hash as a bytes32 value.
+     */
+    function invoiceStructHash(
+        Invoice calldata invoice
+    ) external pure returns (bytes32) {
+        return _invoiceStructHash(invoice);
+    }
+
+    /**
+     * @dev External function to compute the EIP-712 digest for an Invoice.
+     * @param invoice The invoice struct to hash.
+     * @return The computed EIP-712 digest as a bytes32 value.
+     */
+    function invoiceDigest(
+        Invoice calldata invoice
+    ) external view returns (bytes32) {
+        return _hashTypedDataV4(this.invoiceStructHash(invoice));
+    }
+
+    /**
+     * @dev External function to compute the EIP-712 digest for a payer bind.
+     * @param invoiceHash The hash of the invoice struct.
+     * @param payer The address of the payer.
+     * @return The computed EIP-712 digest as a bytes32 value.
+     */
+    function payerBindDigest(
+        bytes32 invoiceHash,
+        address payer
+    ) external view returns (bytes32) {
+        bytes32 bindHash = keccak256(
+            abi.encode(PAYER_BIND_TYPE_HASH, invoiceHash, payer)
+        );
+        return _hashTypedDataV4(bindHash);
     }
 
     /**
