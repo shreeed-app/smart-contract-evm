@@ -13,7 +13,7 @@ This project implements a smart contract for the Ethereum and all EVM-compatible
 
 ## Prerequisites
 
-- Node.JS
+- [Node.JS](https://nodejs.org)
 - HardHat
 
 ## Installation
