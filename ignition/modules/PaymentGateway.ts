@@ -6,16 +6,16 @@ import {
 } from "@nomicfoundation/ignition-core";
 import { type Address } from "viem";
 
-const CONTRACT_NAME: string = "PaymentGateway";
-const SIGNER_ADDRESS: Address = "0xfabb0ac9d68b0b445fb7357272ff202c5651694a";
-const OWNER_ADDRESS: Address = "0x1cbd3b2770909d4e10f157cabc84c7264073c9ec";
+const ContractName = "PaymentGateway" as const satisfies string;
+const SignerAddress: Address = "0xfabb0ac9d68b0b445fb7357272ff202c5651694a";
+const OwnerAddress: Address = "0x1cbd3b2770909d4e10f157cabc84c7264073c9ec";
 
 const PaymentGateway: IgnitionModule = buildModule(
-  CONTRACT_NAME,
+  ContractName,
   (module: IgnitionModuleBuilder) => {
     const paymentGateway: NamedArtifactContractDeploymentFuture<
-      typeof CONTRACT_NAME
-    > = module.contract(CONTRACT_NAME, [SIGNER_ADDRESS, OWNER_ADDRESS]);
+      typeof ContractName
+    > = module.contract(ContractName, [SignerAddress, OwnerAddress]);
     return { paymentGateway: paymentGateway };
   },
 );

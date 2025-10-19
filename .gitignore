@@ -1,25 +1,26 @@
-# Node modules
+# Node modules.
 /node_modules
 
-# Compilation output
+# Compilation output.
 /dist
+*.tsbuildinfo
 
-# pnpm deploy output
+# PNPM deploy output.
 /bundle
 
-# Hardhat Build Artifacts
+# Hardhat Build Artifacts.
 /artifacts
 /ignition/deployments
 
-# Hardhat compilation (v2) support directory
+# Hardhat compilation (v2) support directory.
 /cache
 
-# Typechain output
+# Typechain output.
 /types
 
-# Hardhat coverage reports
+# Hardhat coverage reports.
 /coverage
 
-# Operating system related files
+# Operating system files.
 .DS_Store
 Thumbs.db

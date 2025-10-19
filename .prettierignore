@@ -1,18 +1,34 @@
-# Node dependencies
-node_modules
-
-# Build output
-dist
-*.tsbuildinfo
-
-# Git repository
+# Git repository.
 .git
 
-# Package manager files
+# Node modules.
+/node_modules
+
+# Package manager files.
 package-lock.json
 pnpm-lock.yaml
 yarn.lock
 
-# Operating system
+# Compilation output.
+/dist
+*.tsbuildinfo
+
+# PNPM deploy output.
+/bundle
+
+# Hardhat Build Artifacts.
+/artifacts
+/ignition/deployments
+
+# Hardhat compilation (v2) support directory.
+/cache
+
+# Typechain output.
+/types
+
+# Hardhat coverage reports.
+/coverage
+
+# Operating system files.
 .DS_Store
-.Thumbs.db
+Thumbs.db

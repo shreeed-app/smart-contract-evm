@@ -13,6 +13,7 @@
     "ierc",
     "keccak",
     "reentrancy",
+    "typechain",
     "typehash",
     "viem",
     "wagmi"
