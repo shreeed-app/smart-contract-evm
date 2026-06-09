@@ -2,6 +2,22 @@
 
 Ethereum and all EVM-compatible blockchains smart contract for a payment gateway. Accepts direct payments and cross-chain bridge deposits, splits funds atomically between a merchant and a platform fee recipient, and verifies off-chain invoice signatures produced by an multi-party computation threshold engine via EIP-712.
 
+## Compatibility
+
+| OS                 | Status |
+| ------------------ | ------ |
+| macOS              | ✅      |
+| Linux              | ✅      |
+| Windows (via WSL2) | ✅      |
+| Native Windows     | ✅      |
+
+## Prerequisites
+
+- [Node.js](https://nodejs.org)
+- [Bun](https://bun.sh)
+- [Socket Firewall](https://socket.dev/features/firewall) (for dependency management)
+- [HardHat](https://hardhat.org)
+
 ## Usage
 
 ### Install
