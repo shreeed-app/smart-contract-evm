@@ -34,8 +34,6 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
     using SafeERC20 for IERC20;
 
-    // ── Constants ─────────────────────────────────────────────
-
     /// @notice Sentinel address identifying native ETH (as opposed to ERC20).
     address public constant NATIVE = address(0);
 
@@ -44,8 +42,6 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
 
     /// @notice Absolute cap on fee basis points (100%).
     uint16 public constant MAX_BPS = 10_000;
-
-    // ── State ─────────────────────────────────────────────────
 
     /// @notice Maximum fee in basis points (e.g. 1_000 = 10%).
     uint16 public maxFeeBasisPoints = 1_000;
@@ -62,8 +58,6 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
     /// @notice Replay protection: one-time use per nonce.
     mapping(uint256 => bool) public usedNonces;
 
-    // ── Structs ───────────────────────────────────────────────
-
     /// @notice Invoice as signed by the MPC engine (no payer field).
     struct Invoice {
         address merchant;
@@ -76,9 +70,6 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
         bytes32 metadataHash;
     }
 
-    // ── EIP-712 type hashes ───────────────────────────────────
-
-    // solhint-disable-next-line max-line-length
     bytes32 public constant INVOICE_TYPE_HASH =
         keccak256(
             abi.encodePacked(
@@ -95,7 +86,6 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
             )
         );
 
-    // solhint-disable-next-line max-line-length
     bytes32 public constant PAYER_BIND_TYPE_HASH =
         keccak256(
             abi.encodePacked(
@@ -105,8 +95,6 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
                 ")"
             )
         );
-
-    // ── Events ────────────────────────────────────────────────
 
     /// @notice Emitted when an invoice is paid (both paths).
     event InvoicePaid(
@@ -136,8 +124,6 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
     /// @notice Emitted when a signer rotation is cancelled.
     event SignerUpdateCancelled(address indexed cancelledSigner);
 
-    // ── Constructor ───────────────────────────────────────────
-
     /**
      * @param _invoiceSigner The MPC-derived address authorized to sign
      * invoices.
@@ -151,19 +137,17 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
         invoiceSigner = _invoiceSigner;
     }
 
-    // ── Admin: fee cap ────────────────────────────────────────
-
     /**
      * @notice Sets the maximum fee in basis points. Capped at MAX_BPS
      * (100%).
-     * @param _maxBps The new maximum fee basis points.
+     * @param _maxFeeBasisPoints The new maximum fee basis points.
      */
-    function setMaxFeeBasisPoints(uint16 _maxBps) external onlyOwner {
-        require(_maxBps <= MAX_BPS, "max > 100%");
-        maxFeeBasisPoints = _maxBps;
+    function setMaxFeeBasisPoints(
+        uint16 _maxFeeBasisPoints
+    ) external onlyOwner {
+        require(_maxFeeBasisPoints <= MAX_BPS, "max > 100%");
+        maxFeeBasisPoints = _maxFeeBasisPoints;
     }
-
-    // ── Admin: timelocked signer rotation ─────────────────────
 
     /**
      * @notice Schedules a rotation of the invoice signer. The new signer
@@ -214,8 +198,6 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
         emit SignerUpdateCancelled(cancelled);
     }
 
-    // ── Pause ─────────────────────────────────────────────────
-
     /**
      * @notice Pauses all payment processing (both paths).
      */
@@ -230,18 +212,13 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
         _unpause();
     }
 
-    // ── Rescue ────────────────────────────────────────────────
-
     /**
      * @notice Recovers ETH accidentally sent directly to the contract
      * (not through payInvoice or fulfillInvoice).
      * @param to The destination address.
      * @param amount The amount to recover.
      */
-    function rescueETH(
-        address to,
-        uint256 amount
-    ) external onlyOwner {
+    function rescueETH(address to, uint256 amount) external onlyOwner {
         require(to != address(0), "to = 0");
         (bool ok, ) = to.call{ value: amount }("");
         require(ok, "ETH transfer failed");
@@ -263,7 +240,8 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
         IERC20(token).safeTransfer(to, amount);
     }
 
-    // ── Path A: Direct payment ────────────────────────────────
+    // Path A: Direct payment
+    // User pays directly with payInvoice, providing the invoice + signature.
 
     /**
      * @notice Pays an invoice directly. The caller holds the funds and
@@ -311,7 +289,11 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
         );
     }
 
-    // ── Path B: Bridge fulfillment ────────────────────────────
+    // Path B: Bridge fulfillment
+    // The bridge delivers funds to the contract then calls fulfillInvoice with
+    // the invoice + signature. No payer-lock for bridge fulfillment — the
+    // bridge is the relayer, and the invoice signature alone proves the
+    // backend authorised this payment.
 
     /**
      * @notice Fulfills an invoice from bridge-delivered funds. The bridge
@@ -364,8 +346,6 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
         );
     }
 
-    // ── Public view helpers ───────────────────────────────────
-
     /**
      * @notice Returns the current EIP-712 domain separator.
      * @return The domain separator.
@@ -412,14 +392,10 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
         return _hashTypedDataV4(bindHash);
     }
 
-    // ── Internal: validation ──────────────────────────────────
-
     /**
      * @dev Validates the invoice invariants (non-signature fields).
      */
-    function _validateInvoice(
-        Invoice calldata invoice
-    ) internal view {
+    function _validateInvoice(Invoice calldata invoice) internal view {
         require(invoice.merchant != address(0), "merchant = 0");
         require(invoice.feeRecipient != address(0), "feeRecipient = 0");
         require(invoice.amount > 0, "amount = 0");
@@ -469,8 +445,6 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
         require(!usedNonces[nonce], "nonce used");
         usedNonces[nonce] = true;
     }
-
-    // ── Internal: split & transfer ────────────────────────────
 
     /**
      * @dev Computes the fee split and transfers ETH from the contract.
@@ -538,12 +512,9 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
      * best practice, avoids the 2300-gas stipend limitation).
      */
     function _sendETH(address to, uint256 amount) internal {
-        // slither-disable-next-line low-level-calls
         (bool ok, ) = to.call{ value: amount }("");
         require(ok, "ETH transfer failed");
     }
-
-    // ── Receive ───────────────────────────────────────────────
 
     /**
      * @notice Accepts incoming ETH transfers (bridge deposits, tips).

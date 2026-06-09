@@ -1,10 +1,10 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
-import {
-  type IgnitionModule,
-  type IgnitionModuleBuilder,
-  type NamedArtifactContractDeploymentFuture,
+import type {
+  IgnitionModule,
+  IgnitionModuleBuilder,
+  NamedArtifactContractDeploymentFuture,
 } from "@nomicfoundation/ignition-core";
-import { type Address } from "viem";
+import type { Address } from "viem";
 
 const ContractName = "PaymentGateway" as const satisfies string;
 const SignerAddress: Address = "0xfabb0ac9d68b0b445fb7357272ff202c5651694a";

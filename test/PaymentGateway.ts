@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import {
-  type ContractReturnType,
-  type GetPublicClientReturnType,
-  type GetWalletClientReturnType,
-  type HardhatViemHelpers,
+import type {
+  ContractReturnType,
+  GetPublicClientReturnType,
+  GetWalletClientReturnType,
+  HardhatViemHelpers,
 } from "@nomicfoundation/hardhat-viem/types";
 import { network } from "hardhat";
-import { type NetworkConnection } from "hardhat/types/network";
+import type { NetworkConnection } from "hardhat/types/network";
 import {
   type Address,
   getAddress,
@@ -58,7 +58,11 @@ const Types = {
 } as const satisfies Record<string, TypedDataParameter[]>;
 
 type KeyForValue<T, V> = {
-  [K in keyof T]: [T[K]] extends [V] ? ([V] extends [T[K]] ? K : never) : never;
+  [K in keyof T]: [T[K]] extends [V]
+    ? [V] extends [T[K]]
+      ? K
+      : never
+    : never;
 }[keyof T];
 
 /**
