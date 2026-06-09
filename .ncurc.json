@@ -1,0 +1,6 @@
+{
+  "cooldown": "7d",
+  "peer": true,
+  "format": ["group", "time"],
+  "dep": "prod,dev,bundle,peer,optional,resolutions"
+}

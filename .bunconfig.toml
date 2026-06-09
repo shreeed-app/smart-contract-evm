@@ -1,0 +1,7 @@
+[install]
+save-exact = true
+minimumReleaseAge = 604800
+
+cache = true
+offline = false
+backend = "clone"

@@ -175,7 +175,7 @@ contract PaymentGatewayTest is Test {
         );
 
         vm.prank(firstPayer);
-        gateway.payInvoice{ value: AMOUNT }(
+        gateway.payInvoice{value: AMOUNT}(
             invoice,
             backendSignature,
             firstPayer,
@@ -194,12 +194,7 @@ contract PaymentGatewayTest is Test {
         bytes memory signature = _sign(invoice);
 
         vm.prank(secondPayer);
-        gateway.payInvoice{ value: AMOUNT }(
-            invoice,
-            signature,
-            address(0),
-            ""
-        );
+        gateway.payInvoice{value: AMOUNT}(invoice, signature, address(0), "");
 
         (uint256 toMerchant, ) = _split(AMOUNT, FEES);
         assertEq(merchant.balance, toMerchant);
@@ -212,7 +207,7 @@ contract PaymentGatewayTest is Test {
 
         vm.prank(firstPayer);
         vm.expectRevert("wrong ETH amount");
-        gateway.payInvoice{ value: AMOUNT - 1 }(
+        gateway.payInvoice{value: AMOUNT - 1}(
             invoice,
             signature,
             address(0),
@@ -247,7 +242,7 @@ contract PaymentGatewayTest is Test {
 
         vm.prank(secondPayer);
         vm.expectRevert("unauthorized payer");
-        gateway.payInvoice{ value: AMOUNT }(
+        gateway.payInvoice{value: AMOUNT}(
             invoice,
             backendSignature,
             firstPayer,
@@ -255,14 +250,14 @@ contract PaymentGatewayTest is Test {
         );
     }
 
-    function test_payInvoice_RevertBadPayerSig() public {
+    function test_payInvoice_RevertBadPayerSignature() public {
         PaymentGateway.Invoice memory invoice = _invoice(gateway.NATIVE());
         bytes memory backendSignature = _sign(invoice);
         bytes memory payerSignature = _signPayerBind(invoice, secondPayer);
 
         vm.prank(firstPayer);
-        vm.expectRevert("invalid payer sig");
-        gateway.payInvoice{ value: AMOUNT }(
+        vm.expectRevert("invalid payer signature");
+        gateway.payInvoice{value: AMOUNT}(
             invoice,
             backendSignature,
             firstPayer,
@@ -290,7 +285,7 @@ contract PaymentGatewayTest is Test {
         );
 
         vm.prank(relayer);
-        gateway.fulfillInvoice{ value: AMOUNT }(invoice, signature);
+        gateway.fulfillInvoice{value: AMOUNT}(invoice, signature);
 
         (uint256 toMerchant, uint256 fee) = _split(AMOUNT, FEES);
         assertEq(merchant.balance - merchantBalance, toMerchant);
@@ -305,7 +300,7 @@ contract PaymentGatewayTest is Test {
 
         vm.prank(relayer);
         vm.expectRevert("wrong ETH amount");
-        gateway.fulfillInvoice{ value: AMOUNT - 1 }(invoice, signature);
+        gateway.fulfillInvoice{value: AMOUNT - 1}(invoice, signature);
     }
 
     function test_fulfillInvoiceERC20() public {
@@ -333,12 +328,7 @@ contract PaymentGatewayTest is Test {
 
         vm.prank(firstPayer);
         vm.expectRevert("expired");
-        gateway.payInvoice{ value: AMOUNT }(
-            invoice,
-            signature,
-            address(0),
-            ""
-        );
+        gateway.payInvoice{value: AMOUNT}(invoice, signature, address(0), "");
     }
 
     function test_revertNonceReused() public {
@@ -346,24 +336,14 @@ contract PaymentGatewayTest is Test {
         bytes memory signature = _sign(invoice);
 
         vm.prank(firstPayer);
-        gateway.payInvoice{ value: AMOUNT }(
-            invoice,
-            signature,
-            address(0),
-            ""
-        );
+        gateway.payInvoice{value: AMOUNT}(invoice, signature, address(0), "");
 
         vm.prank(secondPayer);
         vm.expectRevert("nonce used");
-        gateway.payInvoice{ value: AMOUNT }(
-            invoice,
-            signature,
-            address(0),
-            ""
-        );
+        gateway.payInvoice{value: AMOUNT}(invoice, signature, address(0), "");
     }
 
-    function test_revertBadInvoiceSig() public {
+    function test_revertBadInvoiceSignature() public {
         PaymentGateway.Invoice memory invoice = _invoice(gateway.NATIVE());
         bytes32 digest = keccak256(
             abi.encodePacked(
@@ -373,11 +353,16 @@ contract PaymentGatewayTest is Test {
             )
         );
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(OWNER_KEY, digest);
-        bytes memory badSig = abi.encodePacked(r, s, v);
+        bytes memory badSignature = abi.encodePacked(r, s, v);
 
         vm.prank(firstPayer);
-        vm.expectRevert("invalid invoice sig");
-        gateway.payInvoice{ value: AMOUNT }(invoice, badSig, address(0), "");
+        vm.expectRevert("invalid invoice signature");
+        gateway.payInvoice{value: AMOUNT}(
+            invoice,
+            badSignature,
+            address(0),
+            ""
+        );
     }
 
     function test_revertZeroMerchant() public {
@@ -387,12 +372,7 @@ contract PaymentGatewayTest is Test {
 
         vm.prank(firstPayer);
         vm.expectRevert("merchant = 0");
-        gateway.payInvoice{ value: AMOUNT }(
-            invoice,
-            signature,
-            address(0),
-            ""
-        );
+        gateway.payInvoice{value: AMOUNT}(invoice, signature, address(0), "");
     }
 
     function test_revertZeroFeeRecipient() public {
@@ -402,12 +382,7 @@ contract PaymentGatewayTest is Test {
 
         vm.prank(firstPayer);
         vm.expectRevert("feeRecipient = 0");
-        gateway.payInvoice{ value: AMOUNT }(
-            invoice,
-            signature,
-            address(0),
-            ""
-        );
+        gateway.payInvoice{value: AMOUNT}(invoice, signature, address(0), "");
     }
 
     function test_revertFeeExceedsMax() public {
@@ -417,12 +392,7 @@ contract PaymentGatewayTest is Test {
 
         vm.prank(firstPayer);
         vm.expectRevert("feeBasisPoints > max");
-        gateway.payInvoice{ value: AMOUNT }(
-            invoice,
-            signature,
-            address(0),
-            ""
-        );
+        gateway.payInvoice{value: AMOUNT}(invoice, signature, address(0), "");
     }
 
     function test_setMaxFeeBasisPoints() public {
@@ -471,7 +441,7 @@ contract PaymentGatewayTest is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(SECOND_SIGNER_KEY, digest);
 
         vm.prank(firstPayer);
-        gateway.payInvoice{ value: AMOUNT }(
+        gateway.payInvoice{value: AMOUNT}(
             invoice,
             abi.encodePacked(r, s, v),
             address(0),
@@ -523,24 +493,14 @@ contract PaymentGatewayTest is Test {
         bytes memory signature = _sign(invoice);
         vm.prank(firstPayer);
         vm.expectRevert();
-        gateway.payInvoice{ value: AMOUNT }(
-            invoice,
-            signature,
-            address(0),
-            ""
-        );
+        gateway.payInvoice{value: AMOUNT}(invoice, signature, address(0), "");
 
         vm.prank(owner);
         gateway.unpause();
         assertFalse(gateway.paused());
 
         vm.prank(firstPayer);
-        gateway.payInvoice{ value: AMOUNT }(
-            invoice,
-            signature,
-            address(0),
-            ""
-        );
+        gateway.payInvoice{value: AMOUNT}(invoice, signature, address(0), "");
     }
 
     function test_pause_RevertNotOwner() public {
@@ -597,7 +557,7 @@ contract PaymentGatewayTest is Test {
 
     function test_receiveETH() public {
         vm.prank(firstPayer);
-        (bool ok, ) = address(gateway).call{ value: 1 ether }("");
+        (bool ok, ) = address(gateway).call{value: 1 ether}("");
         assertTrue(ok);
         assertEq(address(gateway).balance, 1 ether);
     }

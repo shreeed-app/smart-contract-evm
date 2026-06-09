@@ -19,7 +19,7 @@ This project implements a smart contract for the Ethereum and all EVM-compatible
 ## Installation
 
 ```bash
-pnpm install
+bun run dependencies:install
 ```
 
 ## Usage
@@ -27,25 +27,25 @@ pnpm install
 ### Start local blockchain
 
 ```bash
-pnpm hardhat node
+bun run hardhat node
 ```
 
 ### Build
 
 ```bash
-pnpm hardhat compile
+bun run hardhat compile
 ```
 
 ### Deploy
 
 ```bash
-pnpm hardhat ignition deploy ignition/modules/PaymentGateway.ts --network localhost
+bun run hardhat ignition deploy ignition/modules/PaymentGateway.ts --network localhost
 ```
 
 ### Test
 
 ```bash
-pnpm hardhat test
+bun run hardhat test
 ```
 
 ## License

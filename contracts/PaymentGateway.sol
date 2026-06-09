@@ -11,19 +11,20 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title PaymentGateway
- * @notice Production-ready payment gateway: single-chain direct payments plus
- * cross-chain bridge fulfillment. Invoices are signed off-chain by an MPC
- * threshold engine and verified on-chain via EIP-712.
+ * @notice Single-chain direct payments plus cross-chain bridge fulfillment.
+ * Invoices are signed off-chain by an multi-party computation threshold engine
+ * and verified on-chain via EIP-712.
  *
  * Path A — Direct payment:
- *   User calls payInvoice() with the invoice + MPC signature. Funds flow
- *   from msg.sender to merchant + fee recipient in one atomic transaction.
+ *   User calls payInvoice() with the invoice + multi-party computation
+ *   signature. Funds flow from msg.sender to merchant + fee recipient in one
+ *   atomic transaction.
  *
  * Path B — Bridge fulfillment:
  *   A bridge aggregator (Li.Fi, Across) delivers tokens to the contract
- *   then calls fulfillInvoice() with the invoice + MPC signature. Funds
- *   flow from the contract's temporary balance — the bridge already
- *   deposited them earlier in the same transaction.
+ *   then calls fulfillInvoice() with the invoice + multi-party computation
+ *   signature. Funds flow from the contract's temporary balance — the bridge
+ *   already deposited them earlier in the same transaction.
  *
  * Security:
  *   - Ownable2Step: two-step ownership transfer prevents accidental loss.
@@ -46,7 +47,8 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
     /// @notice Maximum fee in basis points (e.g. 1_000 = 10%).
     uint16 public maxFeeBasisPoints = 1_000;
 
-    /// @notice The MPC-derived public key address that signs invoices.
+    /// @notice The multi-party computation-derived public key address that
+    /// signs invoices.
     address public invoiceSigner;
 
     /// @notice Pending invoice signer during rotation timelock.
@@ -58,7 +60,8 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
     /// @notice Replay protection: one-time use per nonce.
     mapping(uint256 => bool) public usedNonces;
 
-    /// @notice Invoice as signed by the MPC engine (no payer field).
+    /// @notice Invoice as signed by the multi-party computation engine (no
+    /// payer field).
     struct Invoice {
         address merchant;
         address token;
@@ -125,8 +128,8 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
     event SignerUpdateCancelled(address indexed cancelledSigner);
 
     /**
-     * @param _invoiceSigner The MPC-derived address authorized to sign
-     * invoices.
+     * @param _invoiceSigner The multi-party computation-derived address
+     * authorized to sign invoices.
      * @param _owner The contract owner (multisig / governance).
      */
     constructor(
@@ -240,15 +243,13 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
         IERC20(token).safeTransfer(to, amount);
     }
 
-    // Path A: Direct payment
-    // User pays directly with payInvoice, providing the invoice + signature.
-
     /**
      * @notice Pays an invoice directly. The caller holds the funds and
      * approves the contract (for ERC20) or attaches msg.value (for ETH).
      *
      * @param invoice The backend-signed invoice.
-     * @param backendSignature EIP-712 signature from the MPC engine.
+     * @param backendSignature EIP-712 signature from the multi-party
+     * computation engine.
      * @param payer Optional payer-lock address (0 = open to anyone).
      * @param payerSignature If payer != 0, EIP-712 PayerBind signature
      * by the payer authorizing them as the sole payer for this invoice.
@@ -289,12 +290,6 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
         );
     }
 
-    // Path B: Bridge fulfillment
-    // The bridge delivers funds to the contract then calls fulfillInvoice with
-    // the invoice + signature. No payer-lock for bridge fulfillment — the
-    // bridge is the relayer, and the invoice signature alone proves the
-    // backend authorised this payment.
-
     /**
      * @notice Fulfills an invoice from bridge-delivered funds. The bridge
      * aggregator (Li.Fi, Across) transfers tokens to this contract then
@@ -309,7 +304,8 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
      * typically the bridge executor / relayer.
      *
      * @param invoice The backend-signed invoice.
-     * @param backendSignature EIP-712 signature from the MPC engine.
+     * @param backendSignature EIP-712 signature from the multi-party
+     * computation engine.
      */
     function fulfillInvoice(
         Invoice calldata invoice,
@@ -407,7 +403,8 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
     }
 
     /**
-     * @dev Verifies the MPC EIP-712 signature on the invoice.
+     * @dev Verifies the multi-party computation EIP-712 signature on the
+     * invoice.
      */
     function _verifyInvoiceSignature(
         Invoice calldata invoice,
@@ -415,7 +412,7 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
     ) internal view {
         bytes32 digest = _hashTypedDataV4(_invoiceStructHash(invoice));
         address recovered = ECDSA.recover(digest, backendSignature);
-        require(recovered == invoiceSigner, "invalid invoice sig");
+        require(recovered == invoiceSigner, "invalid invoice signature");
     }
 
     /**
@@ -435,7 +432,7 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
         );
         bytes32 bindDigest = _hashTypedDataV4(bindHash);
         address recovered = ECDSA.recover(bindDigest, payerSignature);
-        require(recovered == payer, "invalid payer sig");
+        require(recovered == payer, "invalid payer signature");
     }
 
     /**
