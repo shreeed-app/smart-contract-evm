@@ -1,51 +1,53 @@
-# Ethereum and EVM-compatible
+# Ethereum and EVM Smart Contract
 
-This project implements a smart contract for the Ethereum and all EVM-compatible blockchains that can be used as a payment gateway interface. It is secured against tampering, it transfers to multiple addresses, has payer lock available, and allows flexible platform fees.
+Ethereum and all EVM-compatible blockchains smart contract for a payment gateway. Accepts direct payments and cross-chain bridge deposits, splits funds atomically between a merchant and a platform fee recipient, and verifies off-chain invoice signatures produced by an multi-party computation threshold engine via EIP-712.
 
-## Compatibility
+## Usage
 
-| OS                 | Status |
-| ------------------ | ------ |
-| macOS              | ✅     |
-| Linux              | ✅     |
-| Windows (via WSL2) | ✅     |
-| Native Windows     | ✅     |
-
-## Prerequisites
-
-- [Node.JS](https://nodejs.org)
-- HardHat
-
-## Installation
+### Install
 
 ```bash
 bun run dependencies:install
 ```
 
-## Usage
-
-### Start local blockchain
+### Compile
 
 ```bash
-bun run hardhat node
+bun run compile
 ```
 
-### Build
+### Start a local blockchain
 
 ```bash
-bun run hardhat compile
+bun run node
 ```
 
-### Deploy
+### Deploy to localhost
 
 ```bash
-bun run hardhat ignition deploy ignition/modules/PaymentGateway.ts --network localhost
+bun run deploy
 ```
+
+The deployment module (`ignition/modules/PaymentGateway.ts`) deploys
+the contract with the configured signer and owner addresses. Update
+these values before deploying to a live network.
 
 ### Test
 
 ```bash
-bun run hardhat test
+bun run test
+```
+
+### Lint
+
+```bash
+bun run lint:fix
+```
+
+### Format
+
+```bash
+bun run format
 ```
 
 ## License
