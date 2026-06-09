@@ -182,18 +182,16 @@ describe(ContractName, async (): Promise<void> => {
         { value: AMOUNT, account: payer.account },
       ),
       gateway,
-      "PaidInvoice",
+      "InvoicePaid",
       [
-        {
-          payer: payerAddress,
-          merchant: merchantAddress,
-          token: getAddress(invoice.token),
-          amount: invoice.amount,
-          feeBasisPoints: invoice.feeBasisPoints,
-          feeRecipient: getAddress(invoice.feeRecipient),
-          metadataHash: invoice.metadataHash,
-          nonce: invoice.nonce,
-        },
+        payerAddress,
+        merchantAddress,
+        getAddress(invoice.token),
+        invoice.amount,
+        invoice.feeBasisPoints,
+        getAddress(invoice.feeRecipient),
+        invoice.metadataHash,
+        invoice.nonce,
       ],
     );
 
@@ -394,7 +392,7 @@ describe(ContractName, async (): Promise<void> => {
           { value: invoiceTampered.amount, account: payer.account },
         );
       })(),
-      /incorrect backend signature/i,
+      /invalid invoice sig/i,
     );
 
     const used: boolean = await gateway.read.usedNonces([invoice.nonce]);
