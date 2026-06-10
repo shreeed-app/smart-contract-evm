@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import "forge-std/Test.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./PaymentGateway.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "forge-std/Test.sol";
 
 contract MockUSDC is ERC20 {
-    constructor() ERC20("Mock USDC", "USDC") {}
+    constructor() ERC20("Mock USDC", "USDC") { }
 
     function mint(address to, uint256 amount) external {
         _mint(to, amount);
@@ -35,7 +35,7 @@ contract PaymentGatewayTest is Test {
     PaymentGateway private gateway;
     MockUSDC private usdc;
 
-    uint16 private constant FEES = 1_000;
+    uint16 private constant FEES = 1000;
     uint256 private constant AMOUNT = 1 ether;
 
     function setUp() public {
@@ -69,27 +69,30 @@ contract PaymentGatewayTest is Test {
         usdc.approve(address(gateway), type(uint256).max);
     }
 
-    function _invoice(
-        address token
-    ) internal view returns (PaymentGateway.Invoice memory) {
-        return
-            PaymentGateway.Invoice({
-                merchant: merchant,
-                token: token,
-                amount: AMOUNT,
-                feeBasisPoints: FEES,
-                feeRecipient: feeRecipient,
-                expiry: block.timestamp + 1 hours,
-                nonce: uint256(
-                    keccak256(abi.encodePacked(block.timestamp, gasleft()))
-                ),
-                metadataHash: keccak256("test")
-            });
+    function _invoice(address token)
+        internal
+        view
+        returns (PaymentGateway.Invoice memory)
+    {
+        return PaymentGateway.Invoice({
+            merchant: merchant,
+            token: token,
+            amount: AMOUNT,
+            feeBasisPoints: FEES,
+            feeRecipient: feeRecipient,
+            expiry: block.timestamp + 1 hours,
+            nonce: uint256(
+                keccak256(abi.encodePacked(block.timestamp, gasleft()))
+            ),
+            metadataHash: keccak256("test")
+        });
     }
 
-    function _sign(
-        PaymentGateway.Invoice memory invoice
-    ) internal view returns (bytes memory) {
+    function _sign(PaymentGateway.Invoice memory invoice)
+        internal
+        view
+        returns (bytes memory)
+    {
         bytes32 digest = keccak256(
             abi.encodePacked(
                 "\x19\x01",
@@ -108,29 +111,25 @@ contract PaymentGatewayTest is Test {
         bytes32 invoiceHash = gateway.invoiceStructHash(invoice);
         bytes32 bindStructHash = keccak256(
             abi.encode(
-                gateway.PAYER_BIND_TYPE_HASH(),
-                invoiceHash,
-                payerAddress
+                gateway.PAYER_BIND_TYPE_HASH(), invoiceHash, payerAddress
             )
         );
         bytes32 bindDigest = keccak256(
             abi.encodePacked(
-                "\x19\x01",
-                gateway.domainSeparator(),
-                bindStructHash
+                "\x19\x01", gateway.domainSeparator(), bindStructHash
             )
         );
-        uint256 key = payerAddress == firstPayer
-            ? FIRST_PAYER_KEY
-            : SECOND_PAYER_KEY;
+        uint256 key =
+            payerAddress == firstPayer ? FIRST_PAYER_KEY : SECOND_PAYER_KEY;
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(key, bindDigest);
         return abi.encodePacked(r, s, v);
     }
 
-    function _split(
-        uint256 amount,
-        uint16 basisPoints
-    ) internal pure returns (uint256 toMerchant, uint256 fee) {
+    function _split(uint256 amount, uint16 basisPoints)
+        internal
+        pure
+        returns (uint256 toMerchant, uint256 fee)
+    {
         fee = (amount * basisPoints) / 10_000;
         toMerchant = amount - fee;
     }
@@ -175,11 +174,8 @@ contract PaymentGatewayTest is Test {
         );
 
         vm.prank(firstPayer);
-        gateway.payInvoice{value: AMOUNT}(
-            invoice,
-            backendSignature,
-            firstPayer,
-            payerSignature
+        gateway.payInvoice{ value: AMOUNT }(
+            invoice, backendSignature, firstPayer, payerSignature
         );
 
         (uint256 toMerchant, uint256 fee) = _split(AMOUNT, FEES);
@@ -194,9 +190,9 @@ contract PaymentGatewayTest is Test {
         bytes memory signature = _sign(invoice);
 
         vm.prank(secondPayer);
-        gateway.payInvoice{value: AMOUNT}(invoice, signature, address(0), "");
+        gateway.payInvoice{ value: AMOUNT }(invoice, signature, address(0), "");
 
-        (uint256 toMerchant, ) = _split(AMOUNT, FEES);
+        (uint256 toMerchant,) = _split(AMOUNT, FEES);
         assertEq(merchant.balance, toMerchant);
         assertTrue(gateway.usedNonces(invoice.nonce));
     }
@@ -207,11 +203,8 @@ contract PaymentGatewayTest is Test {
 
         vm.prank(firstPayer);
         vm.expectRevert("wrong ETH amount");
-        gateway.payInvoice{value: AMOUNT - 1}(
-            invoice,
-            signature,
-            address(0),
-            ""
+        gateway.payInvoice{ value: AMOUNT - 1 }(
+            invoice, signature, address(0), ""
         );
     }
 
@@ -224,10 +217,7 @@ contract PaymentGatewayTest is Test {
 
         vm.prank(firstPayer);
         gateway.payInvoice(
-            invoice,
-            backendSignature,
-            firstPayer,
-            payerSignature
+            invoice, backendSignature, firstPayer, payerSignature
         );
 
         assertEq(usdc.balanceOf(merchant), toMerchant);
@@ -242,11 +232,8 @@ contract PaymentGatewayTest is Test {
 
         vm.prank(secondPayer);
         vm.expectRevert("unauthorized payer");
-        gateway.payInvoice{value: AMOUNT}(
-            invoice,
-            backendSignature,
-            firstPayer,
-            payerSignature
+        gateway.payInvoice{ value: AMOUNT }(
+            invoice, backendSignature, firstPayer, payerSignature
         );
     }
 
@@ -257,11 +244,8 @@ contract PaymentGatewayTest is Test {
 
         vm.prank(firstPayer);
         vm.expectRevert("invalid payer signature");
-        gateway.payInvoice{value: AMOUNT}(
-            invoice,
-            backendSignature,
-            firstPayer,
-            payerSignature
+        gateway.payInvoice{ value: AMOUNT }(
+            invoice, backendSignature, firstPayer, payerSignature
         );
     }
 
@@ -285,7 +269,7 @@ contract PaymentGatewayTest is Test {
         );
 
         vm.prank(relayer);
-        gateway.fulfillInvoice{value: AMOUNT}(invoice, signature);
+        gateway.fulfillInvoice{ value: AMOUNT }(invoice, signature);
 
         (uint256 toMerchant, uint256 fee) = _split(AMOUNT, FEES);
         assertEq(merchant.balance - merchantBalance, toMerchant);
@@ -300,7 +284,7 @@ contract PaymentGatewayTest is Test {
 
         vm.prank(relayer);
         vm.expectRevert("wrong ETH amount");
-        gateway.fulfillInvoice{value: AMOUNT - 1}(invoice, signature);
+        gateway.fulfillInvoice{ value: AMOUNT - 1 }(invoice, signature);
     }
 
     function test_fulfillInvoiceERC20() public {
@@ -328,7 +312,7 @@ contract PaymentGatewayTest is Test {
 
         vm.prank(firstPayer);
         vm.expectRevert("expired");
-        gateway.payInvoice{value: AMOUNT}(invoice, signature, address(0), "");
+        gateway.payInvoice{ value: AMOUNT }(invoice, signature, address(0), "");
     }
 
     function test_revertNonceReused() public {
@@ -336,11 +320,11 @@ contract PaymentGatewayTest is Test {
         bytes memory signature = _sign(invoice);
 
         vm.prank(firstPayer);
-        gateway.payInvoice{value: AMOUNT}(invoice, signature, address(0), "");
+        gateway.payInvoice{ value: AMOUNT }(invoice, signature, address(0), "");
 
         vm.prank(secondPayer);
         vm.expectRevert("nonce used");
-        gateway.payInvoice{value: AMOUNT}(invoice, signature, address(0), "");
+        gateway.payInvoice{ value: AMOUNT }(invoice, signature, address(0), "");
     }
 
     function test_revertBadInvoiceSignature() public {
@@ -357,11 +341,8 @@ contract PaymentGatewayTest is Test {
 
         vm.prank(firstPayer);
         vm.expectRevert("invalid invoice signature");
-        gateway.payInvoice{value: AMOUNT}(
-            invoice,
-            badSignature,
-            address(0),
-            ""
+        gateway.payInvoice{ value: AMOUNT }(
+            invoice, badSignature, address(0), ""
         );
     }
 
@@ -372,7 +353,7 @@ contract PaymentGatewayTest is Test {
 
         vm.prank(firstPayer);
         vm.expectRevert("merchant = 0");
-        gateway.payInvoice{value: AMOUNT}(invoice, signature, address(0), "");
+        gateway.payInvoice{ value: AMOUNT }(invoice, signature, address(0), "");
     }
 
     function test_revertZeroFeeRecipient() public {
@@ -382,7 +363,7 @@ contract PaymentGatewayTest is Test {
 
         vm.prank(firstPayer);
         vm.expectRevert("feeRecipient = 0");
-        gateway.payInvoice{value: AMOUNT}(invoice, signature, address(0), "");
+        gateway.payInvoice{ value: AMOUNT }(invoice, signature, address(0), "");
     }
 
     function test_revertFeeExceedsMax() public {
@@ -392,7 +373,7 @@ contract PaymentGatewayTest is Test {
 
         vm.prank(firstPayer);
         vm.expectRevert("feeBasisPoints > max");
-        gateway.payInvoice{value: AMOUNT}(invoice, signature, address(0), "");
+        gateway.payInvoice{ value: AMOUNT }(invoice, signature, address(0), "");
     }
 
     function test_setMaxFeeBasisPoints() public {
@@ -441,11 +422,8 @@ contract PaymentGatewayTest is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(SECOND_SIGNER_KEY, digest);
 
         vm.prank(firstPayer);
-        gateway.payInvoice{value: AMOUNT}(
-            invoice,
-            abi.encodePacked(r, s, v),
-            address(0),
-            ""
+        gateway.payInvoice{ value: AMOUNT }(
+            invoice, abi.encodePacked(r, s, v), address(0), ""
         );
     }
 
@@ -493,14 +471,14 @@ contract PaymentGatewayTest is Test {
         bytes memory signature = _sign(invoice);
         vm.prank(firstPayer);
         vm.expectRevert();
-        gateway.payInvoice{value: AMOUNT}(invoice, signature, address(0), "");
+        gateway.payInvoice{ value: AMOUNT }(invoice, signature, address(0), "");
 
         vm.prank(owner);
         gateway.unpause();
         assertFalse(gateway.paused());
 
         vm.prank(firstPayer);
-        gateway.payInvoice{value: AMOUNT}(invoice, signature, address(0), "");
+        gateway.payInvoice{ value: AMOUNT }(invoice, signature, address(0), "");
     }
 
     function test_pause_RevertNotOwner() public {
@@ -557,7 +535,7 @@ contract PaymentGatewayTest is Test {
 
     function test_receiveETH() public {
         vm.prank(firstPayer);
-        (bool ok, ) = address(gateway).call{value: 1 ether}("");
+        (bool ok,) = address(gateway).call{ value: 1 ether }("");
         assertTrue(ok);
         assertEq(address(gateway).balance, 1 ether);
     }

@@ -1,0 +1,9 @@
+{
+  "recommendations": [
+    "NomicFoundation.hardhat-solidity",
+    "emeraldwalk.RunOnSave",
+    "biomejs.biome",
+    "dbaeumer.vscode-eslint",
+    "tamasfe.even-better-toml"
+  ]
+}

@@ -2,12 +2,12 @@
 pragma solidity ^0.8.28;
 
 import "@openzeppelin/contracts/access/Ownable2Step.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/utils/Pausable.sol";
-import "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 
 /**
  * @title PaymentGateway
@@ -45,7 +45,7 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
     uint16 public constant MAX_BPS = 10_000;
 
     /// @notice Maximum fee in basis points (e.g. 1_000 = 10%).
-    uint16 public maxFeeBasisPoints = 1_000;
+    uint16 public maxFeeBasisPoints = 1000;
 
     /// @notice The multi-party computation-derived public key address that
     /// signs invoices.
@@ -73,31 +73,26 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
         bytes32 metadataHash;
     }
 
-    bytes32 public constant INVOICE_TYPE_HASH =
-        keccak256(
-            abi.encodePacked(
-                "Invoice(",
-                "address merchant,",
-                "address token,",
-                "uint256 amount,",
-                "uint16 feeBasisPoints,",
-                "address feeRecipient,",
-                "uint256 expiry,",
-                "uint256 nonce,",
-                "bytes32 metadataHash",
-                ")"
-            )
-        );
+    bytes32 public constant INVOICE_TYPE_HASH = keccak256(
+        abi.encodePacked(
+            "Invoice(",
+            "address merchant,",
+            "address token,",
+            "uint256 amount,",
+            "uint16 feeBasisPoints,",
+            "address feeRecipient,",
+            "uint256 expiry,",
+            "uint256 nonce,",
+            "bytes32 metadataHash",
+            ")"
+        )
+    );
 
-    bytes32 public constant PAYER_BIND_TYPE_HASH =
-        keccak256(
-            abi.encodePacked(
-                "PayerBind(",
-                "bytes32 invoiceHash,",
-                "address payer",
-                ")"
-            )
-        );
+    bytes32 public constant PAYER_BIND_TYPE_HASH = keccak256(
+        abi.encodePacked(
+            "PayerBind(", "bytes32 invoiceHash,", "address payer", ")"
+        )
+    );
 
     /// @notice Emitted when an invoice is paid (both paths).
     event InvoicePaid(
@@ -120,8 +115,7 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
 
     /// @notice Emitted when a signer rotation is executed.
     event SignerUpdateExecuted(
-        address indexed previousSigner,
-        address indexed newSigner
+        address indexed previousSigner, address indexed newSigner
     );
 
     /// @notice Emitted when a signer rotation is cancelled.
@@ -132,10 +126,11 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
      * authorized to sign invoices.
      * @param _owner The contract owner (multisig / governance).
      */
-    constructor(
-        address _invoiceSigner,
-        address _owner
-    ) EIP712("PaymentGateway", "1") Ownable(_owner) Ownable2Step() {
+    constructor(address _invoiceSigner, address _owner)
+        EIP712("PaymentGateway", "1")
+        Ownable(_owner)
+        Ownable2Step()
+    {
         require(_invoiceSigner != address(0), "invoiceSigner = 0");
         invoiceSigner = _invoiceSigner;
     }
@@ -145,9 +140,10 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
      * (100%).
      * @param _maxFeeBasisPoints The new maximum fee basis points.
      */
-    function setMaxFeeBasisPoints(
-        uint16 _maxFeeBasisPoints
-    ) external onlyOwner {
+    function setMaxFeeBasisPoints(uint16 _maxFeeBasisPoints)
+        external
+        onlyOwner
+    {
         require(_maxFeeBasisPoints <= MAX_BPS, "max > 100%");
         maxFeeBasisPoints = _maxFeeBasisPoints;
     }
@@ -158,17 +154,16 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
      * period the current signer remains valid.
      * @param _newSigner The address of the new invoice signer.
      */
-    function scheduleInvoiceSignerUpdate(
-        address _newSigner
-    ) external onlyOwner {
+    function scheduleInvoiceSignerUpdate(address _newSigner)
+        external
+        onlyOwner
+    {
         require(_newSigner != address(0), "signer = 0");
         require(_newSigner != invoiceSigner, "same signer");
         pendingInvoiceSigner = _newSigner;
         signerUpdateScheduledAt = block.timestamp;
         emit SignerUpdateScheduled(
-            invoiceSigner,
-            _newSigner,
-            block.timestamp + SIGNER_TIMELOCK
+            invoiceSigner, _newSigner, block.timestamp + SIGNER_TIMELOCK
         );
     }
 
@@ -223,7 +218,7 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
      */
     function rescueETH(address to, uint256 amount) external onlyOwner {
         require(to != address(0), "to = 0");
-        (bool ok, ) = to.call{ value: amount }("");
+        (bool ok,) = to.call{ value: amount }("");
         require(ok, "ETH transfer failed");
     }
 
@@ -234,11 +229,10 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
      * @param to The destination address.
      * @param amount The amount to recover.
      */
-    function rescueERC20(
-        address token,
-        address to,
-        uint256 amount
-    ) external onlyOwner {
+    function rescueERC20(address token, address to, uint256 amount)
+        external
+        onlyOwner
+    {
         require(to != address(0), "to = 0");
         IERC20(token).safeTransfer(to, amount);
     }
@@ -270,11 +264,8 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
             _splitETH(invoice);
         } else {
             // Pull tokens from payer.
-            IERC20(invoice.token).safeTransferFrom(
-                msg.sender,
-                address(this),
-                invoice.amount
-            );
+            IERC20(invoice.token)
+                .safeTransferFrom(msg.sender, address(this), invoice.amount);
             _splitERC20(invoice);
         }
 
@@ -355,9 +346,11 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
      * @param invoice The invoice to hash.
      * @return The struct hash.
      */
-    function invoiceStructHash(
-        Invoice calldata invoice
-    ) external pure returns (bytes32) {
+    function invoiceStructHash(Invoice calldata invoice)
+        external
+        pure
+        returns (bytes32)
+    {
         return _invoiceStructHash(invoice);
     }
 
@@ -366,9 +359,11 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
      * @param invoice The invoice to digest.
      * @return The EIP-712 digest.
      */
-    function invoiceDigest(
-        Invoice calldata invoice
-    ) external view returns (bytes32) {
+    function invoiceDigest(Invoice calldata invoice)
+        external
+        view
+        returns (bytes32)
+    {
         return _hashTypedDataV4(_invoiceStructHash(invoice));
     }
 
@@ -378,10 +373,11 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
      * @param payer The payer address to bind.
      * @return The EIP-712 digest.
      */
-    function payerBindDigest(
-        bytes32 invoiceHash,
-        address payer
-    ) external view returns (bytes32) {
+    function payerBindDigest(bytes32 invoiceHash, address payer)
+        external
+        view
+        returns (bytes32)
+    {
         bytes32 bindHash = keccak256(
             abi.encode(PAYER_BIND_TYPE_HASH, invoiceHash, payer)
         );
@@ -396,8 +392,7 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
         require(invoice.feeRecipient != address(0), "feeRecipient = 0");
         require(invoice.amount > 0, "amount = 0");
         require(
-            invoice.feeBasisPoints <= maxFeeBasisPoints,
-            "feeBasisPoints > max"
+            invoice.feeBasisPoints <= maxFeeBasisPoints, "feeBasisPoints > max"
         );
         require(block.timestamp <= invoice.expiry, "expired");
     }
@@ -427,9 +422,8 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
 
         require(msg.sender == payer, "unauthorized payer");
         bytes32 invoiceHash = _invoiceStructHash(invoice);
-        bytes32 bindHash = keccak256(
-            abi.encode(PAYER_BIND_TYPE_HASH, invoiceHash, payer)
-        );
+        bytes32 bindHash =
+            keccak256(abi.encode(PAYER_BIND_TYPE_HASH, invoiceHash, payer));
         bytes32 bindDigest = _hashTypedDataV4(bindHash);
         address recovered = ECDSA.recover(bindDigest, payerSignature);
         require(recovered == payer, "invalid payer signature");
@@ -447,10 +441,8 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
      * @dev Computes the fee split and transfers ETH from the contract.
      */
     function _splitETH(Invoice calldata invoice) internal {
-        (uint256 toMerchant, uint256 fee) = _computeSplit(
-            invoice.amount,
-            invoice.feeBasisPoints
-        );
+        (uint256 toMerchant, uint256 fee) =
+            _computeSplit(invoice.amount, invoice.feeBasisPoints);
         _sendETH(invoice.merchant, toMerchant);
         if (fee > 0) _sendETH(invoice.feeRecipient, fee);
     }
@@ -459,10 +451,8 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
      * @dev Computes the fee split and transfers ERC20 from the contract.
      */
     function _splitERC20(Invoice calldata invoice) internal {
-        (uint256 toMerchant, uint256 fee) = _computeSplit(
-            invoice.amount,
-            invoice.feeBasisPoints
-        );
+        (uint256 toMerchant, uint256 fee) =
+            _computeSplit(invoice.amount, invoice.feeBasisPoints);
         IERC20 token = IERC20(invoice.token);
         token.safeTransfer(invoice.merchant, toMerchant);
         if (fee > 0) token.safeTransfer(invoice.feeRecipient, fee);
@@ -473,10 +463,11 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
      * @return toMerchant The merchant's share.
      * @return fee The platform fee.
      */
-    function _computeSplit(
-        uint256 amount,
-        uint16 feeBasisPoints
-    ) internal pure returns (uint256 toMerchant, uint256 fee) {
+    function _computeSplit(uint256 amount, uint16 feeBasisPoints)
+        internal
+        pure
+        returns (uint256 toMerchant, uint256 fee)
+    {
         fee = (amount * feeBasisPoints) / MAX_BPS;
         toMerchant = amount - fee;
         require(toMerchant > 0, "split = 0");
@@ -485,23 +476,24 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
     /**
      * @dev Computes the EIP-712 struct hash for an Invoice.
      */
-    function _invoiceStructHash(
-        Invoice calldata invoice
-    ) internal pure returns (bytes32) {
-        return
-            keccak256(
-                abi.encode(
-                    INVOICE_TYPE_HASH,
-                    invoice.merchant,
-                    invoice.token,
-                    invoice.amount,
-                    invoice.feeBasisPoints,
-                    invoice.feeRecipient,
-                    invoice.expiry,
-                    invoice.nonce,
-                    invoice.metadataHash
-                )
-            );
+    function _invoiceStructHash(Invoice calldata invoice)
+        internal
+        pure
+        returns (bytes32)
+    {
+        return keccak256(
+            abi.encode(
+                INVOICE_TYPE_HASH,
+                invoice.merchant,
+                invoice.token,
+                invoice.amount,
+                invoice.feeBasisPoints,
+                invoice.feeRecipient,
+                invoice.expiry,
+                invoice.nonce,
+                invoice.metadataHash
+            )
+        );
     }
 
     /**
@@ -509,7 +501,7 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
      * best practice, avoids the 2300-gas stipend limitation).
      */
     function _sendETH(address to, uint256 amount) internal {
-        (bool ok, ) = to.call{ value: amount }("");
+        (bool ok,) = to.call{ value: amount }("");
         require(ok, "ETH transfer failed");
     }
 
@@ -517,5 +509,5 @@ contract PaymentGateway is Ownable2Step, ReentrancyGuard, Pausable, EIP712 {
      * @notice Accepts incoming ETH transfers (bridge deposits, tips).
      * No logic — funds are held until fulfillInvoice or rescue.
      */
-    receive() external payable {}
+    receive() external payable { }
 }

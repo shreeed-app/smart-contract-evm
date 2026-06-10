@@ -18,7 +18,15 @@
     "editor.defaultFormatter": "biomejs.biome"
   },
   "[solidity]": {
-    "editor.defaultFormatter": "NomicFoundation.hardhat-solidity"
+    "editor.formatOnSave": false
+  },
+  "emeraldwalk.runonsave": {
+    "commands": [
+      {
+        "match": "\\.sol$",
+        "cmd": "forge fmt ${file}"
+      }
+    ]
   },
   "editor.codeActionsOnSave": {
     "quickfix.biome": "explicit",

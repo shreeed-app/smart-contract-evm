@@ -1,0 +1,10 @@
+[fmt]
+line_length = 79
+tab_width = 4
+bracket_spacing = true
+int_types = "preserve"
+quote_style = "double"
+number_underscore = "thousands"
+multiline_func_header = "attributes_first"
+wrap_comments = true
+sort_imports = true

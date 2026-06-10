@@ -13,10 +13,13 @@ Ethereum and all EVM-compatible blockchains smart contract for a payment gateway
 
 ## Prerequisites
 
+- [Docker](https://www.docker.com) and Docker Compose
+- [Act](https://github.com/nektos/act) for local GitHub Actions testing
 - [Node.js](https://nodejs.org)
 - [Bun](https://bun.sh)
 - [Socket Firewall](https://socket.dev/features/firewall) (for dependency management)
 - [HardHat](https://hardhat.org)
+- [Foundry](https://getfoundry.sh)
 
 ## Usage
 

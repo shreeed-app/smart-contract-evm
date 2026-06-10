@@ -9,9 +9,10 @@
     "test": "hardhat test",
     "lint": "biome check . && eslint",
     "lint:fix": "biome check --write .",
-    "format": "biome format --write . && prettier --write 'contracts/**/*.sol'",
+    "format": "biome format --write . && forge fmt",
     "dependencies:install": "sfw bun install",
-    "dependencies:update": "bunx npm-check-updates -u"
+    "dependencies:update": "bunx npm-check-updates -u",
+    "act:ci": "act -W .github/workflows/ci.yaml -P ubuntu-latest=ghcr.io/catthehacker/ubuntu:full-latest --container-architecture linux/amd64"
   },
   "packageManager": "bun@1.3.14",
   "engines": {
@@ -37,8 +38,6 @@
     "globals": "17.6.0",
     "hardhat": "3.9.0",
     "jiti": "2.7.0",
-    "prettier": "3.8.4",
-    "prettier-plugin-solidity": "2.3.1",
     "ts-node": "10.9.2",
     "typescript": "6.0.3",
     "typescript-eslint": "8.61.0",
